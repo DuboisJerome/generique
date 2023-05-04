@@ -20,7 +20,7 @@ import fr.commons.generique.model.db.IObjetBdd;
 public class DeleteDialogObjetBddFragment<T extends IObjetBdd> extends AbstractDialogFragment<T> {
 
 	protected TableDAO<T> dao;
-	private List<Consumer<T>> lstOnDeleteListener=  new ArrayList<>();
+	private final List<Consumer<T>> lstOnDeleteListener=  new ArrayList<>();
 
 	public DeleteDialogObjetBddFragment(@NonNull T item, @NonNull TableDAO<T> dao) {
 		super(item);
@@ -47,6 +47,7 @@ public class DeleteDialogObjetBddFragment<T extends IObjetBdd> extends AbstractD
 	}
 
 	public void addOnDeleteListener(Consumer<T> c){
+		if(c==null)return;
 		this.lstOnDeleteListener.add(c);
 	}
 

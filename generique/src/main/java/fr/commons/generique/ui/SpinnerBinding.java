@@ -23,7 +23,7 @@ public class SpinnerBinding {
 			}
 			return;
 		}
-		throw new UnsupportedOperationException("The adapter must be a CountrySpinnerAdapter");
+		throw new UnsupportedOperationException("L'adapter doit être une instance de AbstractGeneriqueSpinnerAdapter");
 	}
 
 	@BindingAdapter("selectedSpinnerAttrChanged")

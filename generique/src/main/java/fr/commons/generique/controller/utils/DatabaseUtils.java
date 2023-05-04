@@ -110,9 +110,17 @@ public final class DatabaseUtils {
         return c.getBlob(columnIndex);
     }
 
-    public static String getLang(Context c) {
-        // FIXME String[] supportLang = c.getResources().getStringArray(R.array.support_lang);
-        List<String> listSupportLang = Arrays.asList("fr-fr");
+    public static boolean getBoolCheckNullColumn(final Cursor c,
+                                                 final String columnName) {
+        int columnIndex = c.getColumnIndex(columnName);
+        if (columnIndex == -1 || c.isNull(columnIndex)) {
+            return false;
+        }
+        return c.getInt(columnIndex) == 1;
+    }
+
+    public static String getLang() {
+        List<String> listSupportLang = Arrays.asList("fr_FR","en_US");
 
         String locale = Locale.getDefault().toString();
         // find if current locale is supported

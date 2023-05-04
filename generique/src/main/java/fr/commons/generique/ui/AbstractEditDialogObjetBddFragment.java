@@ -17,8 +17,8 @@ import fr.commons.generique.model.db.IObjetBdd;
 
 public abstract class AbstractEditDialogObjetBddFragment<T extends IObjetBdd> extends AbstractItemDialogFragment<T> {
 
-	private List<Consumer<T>> lstOnCreateListener =  new ArrayList<>();
-	private List<Consumer<T>> lstOnUpdateListener =  new ArrayList<>();
+	private final List<Consumer<T>> lstOnCreateListener =  new ArrayList<>();
+	private final List<Consumer<T>> lstOnUpdateListener =  new ArrayList<>();
 
 	public AbstractEditDialogObjetBddFragment(@NonNull T item) {
 		super(item);
@@ -43,11 +43,11 @@ public abstract class AbstractEditDialogObjetBddFragment<T extends IObjetBdd> ex
 	protected abstract TableDAO<T> getTableDAO();
 
 	public void addOnCreateListener(Consumer<T> c){
-		this.lstOnCreateListener.add(c);
+		if(c==null)return; this.lstOnCreateListener.add(c);
 	}
 
 	public void addOnUpdateListener(Consumer<T> c){
-		this.lstOnUpdateListener.add(c);
+		if(c==null)return; this.lstOnUpdateListener.add(c);
 	}
 
 }

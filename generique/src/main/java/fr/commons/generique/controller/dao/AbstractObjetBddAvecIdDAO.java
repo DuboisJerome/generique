@@ -15,6 +15,10 @@ public abstract class AbstractObjetBddAvecIdDAO<T extends AbstractObjetBddAvecId
 
 	public static final String COL_ID = "ID";
 
+	public String getNomColId(){
+		return COL_ID;
+	}
+
 	protected long getId(Cursor c) {
 		return DatabaseUtils.getLongCheckNullColumn(c, COL_ID);
 	}
@@ -23,7 +27,7 @@ public abstract class AbstractObjetBddAvecIdDAO<T extends AbstractObjetBddAvecId
 	protected ContentValues getContentValues(T bo) {
 		ContentValues cv = new ContentValues();
 		if (!bo.isNew()) {
-			cv.put(COL_ID, bo.getId());
+			cv.put(getNomColId(), bo.getId());
 		}
 		return cv;
 	}
@@ -31,12 +35,12 @@ public abstract class AbstractObjetBddAvecIdDAO<T extends AbstractObjetBddAvecId
 	@Override
 	protected ContentValues getKeyValues(T bo) {
 		ContentValues cv = new ContentValues();
-		cv.put(COL_ID, bo.getId());
+		cv.put(getNomColId(), bo.getId());
 		return cv;
 	}
 
 	public T getById(long id) {
-		List<T> results = selectAll(getSelectAllQuery(COL_ID + "=" + id));
+		List<T> results = selectAll(getSelectAllQuery(getNomColId() + "=" + id));
 		return results.isEmpty() || results.get(0) == null ? null : results.get(0);
 	}
 

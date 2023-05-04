@@ -14,10 +14,10 @@ public abstract class AbstractGeneriqueViewHolder<T> extends RecyclerView.ViewHo
 
 	protected abstract void bind(T t);
 
-	public void bind(BiConsumer<View,Integer> binder, T t, int position) {
+	public void bind(BiConsumer<View,T> binder, T t) {
 		bind(t);
 		if (binder != null) {
-			binder.accept(this.itemView, position);
+			binder.accept(this.itemView, t);
 		}
 	}
 

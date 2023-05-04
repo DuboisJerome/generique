@@ -14,11 +14,13 @@ import java.util.List;
 import fr.commons.generique.R;
 import fr.commons.generique.model.db.AbstractObjetBddAvecId;
 import lombok.Getter;
+import lombok.Setter;
 
 public abstract class AbstractGeneriqueSpinnerAdapter<T extends AbstractObjetBddAvecId> extends ArrayAdapter<T> {
 
 	@Getter
-	private final List<T> list = new ArrayList<>();
+	@Setter
+	private List<T> list = new ArrayList<>();
 
 	public AbstractGeneriqueSpinnerAdapter(@NonNull Context context) {
 		super(context, R.layout.item_spinner);

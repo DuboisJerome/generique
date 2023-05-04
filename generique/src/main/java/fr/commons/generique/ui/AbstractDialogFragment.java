@@ -37,7 +37,7 @@ public abstract class AbstractDialogFragment<T> extends DialogFragment {
 
 	@NonNull
 	@Override
-	public final Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+	public final AlertDialog onCreateDialog(@Nullable Bundle savedInstanceState) {
 		AlertDialog d = creerDialogBuilder().setPositiveButton(R.string.btn_valider, null).setNegativeButton(R.string.btn_annuler, getAnnulerListener()).create();
 		d.setOnShowListener((arg0) -> {
 
@@ -48,16 +48,11 @@ public abstract class AbstractDialogFragment<T> extends DialogFragment {
 			posBtn.setLayoutParams(posParams);
 			posBtn.setTextColor(Color.GREEN);
 			posBtn.invalidate();
-			posBtn.setOnClickListener(new View.OnClickListener()
-			{
-				@Override
-				public void onClick(View v)
-				{
-					boolean isAllValid = lstValidationItemListener.stream().allMatch(l -> l.test(item));
-					if(isAllValid){
-						lstItemValideListener.forEach(l -> l.accept(item));
-						d.dismiss();
-					}
+			posBtn.setOnClickListener(v -> {
+				boolean isAllValid = lstValidationItemListener.stream().allMatch(l -> l.test(item));
+				if(isAllValid){
+					lstItemValideListener.forEach(l -> l.accept(item));
+					d.dismiss();
 				}
 			});
 
