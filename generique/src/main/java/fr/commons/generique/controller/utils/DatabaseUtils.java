@@ -2,6 +2,8 @@ package fr.commons.generique.controller.utils;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -146,11 +148,6 @@ public final class DatabaseUtils {
         }
 
         return result;
-    }
-
-
-    public static String buildWhereIn(final String col, List<String> values, boolean isStringType) {
-        return " " + col + " IN (" + arrayToDelemiteString(values.toArray(), isStringType) + ") ";
     }
 
     public static String buildWhere(final String col, final String value) {

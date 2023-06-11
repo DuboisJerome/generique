@@ -141,6 +141,22 @@ public abstract class AbstractGeneriqueAdapter<T, VH extends AbstractGeneriqueVi
 		return itemsSelected.remove(t);
 	}
 
+	public boolean toogleSelect(T t){
+		return isSelected(t) ?
+			deselect(t) : select(t);
+	}
+
+	public boolean selectAll(){
+		return this.itemsSelected.addAll(this.originalList);
+	}
+
+	public void deselectAll(){
+		this.itemsSelected.clear();
+	}
+	public void toogleAll(){
+		this.originalList.forEach(this::toogleSelect);
+	}
+
 	public Set<T> getLstItemSelected() {
 		return this.itemsSelected;
 	}
@@ -311,7 +327,7 @@ public abstract class AbstractGeneriqueAdapter<T, VH extends AbstractGeneriqueVi
 
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
-		VH b = this.onCreateViewHolder(parent, 0);
+		VH b = this.onCreateViewHolder(parent, getItemViewType(position));
 		b.bind(this.binder.merge(), getItemAt(position));
 		return b.itemView;
 	}
@@ -341,6 +357,10 @@ public abstract class AbstractGeneriqueAdapter<T, VH extends AbstractGeneriqueVi
 		this.binder.set("ON_CLICK_ITEM_LISTENER", (v,t) -> {
 			v.setOnClickListener(v1 -> {
 				c.accept(t);
+			});
+			v.setOnLongClickListener(v1 -> {
+				c.accept(t);
+				return false;
 			});
 		});
 	}

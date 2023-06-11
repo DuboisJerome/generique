@@ -44,10 +44,4 @@ public abstract class AbstractObjetBddAvecIdDAO<T extends AbstractObjetBddAvecId
 		return results.isEmpty() || results.get(0) == null ? null : results.get(0);
 	}
 
-	@Override
-	protected long replaceOrThrow(SQLiteDatabase db, T bo) {
-		long id = super.replaceOrThrow(db, bo);
-		bo.setId(id);
-		return id;
-	}
 }

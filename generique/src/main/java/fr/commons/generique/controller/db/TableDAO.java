@@ -4,15 +4,14 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import fr.commons.generique.controller.utils.DatabaseUtils;
@@ -48,13 +47,31 @@ public abstract class TableDAO<B extends IObjetBdd> {
 	public abstract String getNomTable();
 
 	public void creer(B bo) {
-		insertOrReplaceImpl(bo);
+		creerAll(List.of(bo), SQLiteDatabase.CONFLICT_IGNORE);
 	}
+	public void creer(B bo, int conflictAlgo) {
+		creerAll(List.of(bo), conflictAlgo);
+	}
+
+	protected void creerAll(final List<B> bos, int conflictAlgo) {
+		if (bos != null && bos.size() > 0) {
+			SQLiteDatabase db = this.openWrite();
+			db.beginTransaction();
+			for (B bo : bos) {
+				if (bo != null) {
+					db.insertWithOnConflict(getNomTable(), null,
+							getContentValues(bo), conflictAlgo);
+				}
+			}
+			db.setTransactionSuccessful();
+			db.endTransaction();
+		}
+	}
+
 
 	public B get(B bo) {
 		if (bo == null) return null;
-		B result = bo;
-		ContentValues cv = getKeyValues(bo);
+		B result;
 		SQLiteDatabase db = this.openRead();
 
 		db.beginTransaction();
@@ -72,7 +89,37 @@ public abstract class TableDAO<B extends IObjetBdd> {
 	}
 
 	public void update(B bo) {
-		insertOrReplaceImpl(bo);
+		updateAll(List.of(new Pair<>((B)null, bo)));
+	}
+
+	public void update(B boOld, B boNew){
+		updateAll(List.of(new Pair<>(boOld, boNew)));
+	}
+
+	protected void updateAll(final List<Pair<B,B>> bos) {
+		if (bos != null && bos.size() > 0) {
+			SQLiteDatabase db = this.openWrite();
+			db.beginTransaction();
+			for (Pair<B,B> pair : bos) {
+				if (pair != null) {
+
+					ContentValues cv;
+					if(pair.first != null){
+						// Update only modified fields
+						cv = getContentValuesToUpdate(pair.first, pair.second);
+					} else {
+						// Update all fields
+						cv = getContentValues(pair.second);
+					}
+					ContentValues keys = getKeyValues(pair.second);
+					String where = buildPartReqArgs(keys, e -> e.getKey() +"=?", " AND ");
+					String[] whereArgs =  toArgs(keys);
+					db.update(getNomTable(), cv, where, whereArgs);
+				}
+			}
+			db.setTransactionSuccessful();
+			db.endTransaction();
+		}
 	}
 
 	public void delete(B bo) {
@@ -81,40 +128,6 @@ public abstract class TableDAO<B extends IObjetBdd> {
 		db.delete(getNomTable(), getWhereClause(bo), null);
 		db.setTransactionSuccessful();
 		db.endTransaction();
-	}
-
-	private void insertOrReplaceImpl(final B bo) {
-		insertOrReplaceImpl(Collections.singletonList(bo));
-	}
-
-	/**
-	 * Add business objects to database
-	 *
-	 * @param bos business objects
-	 */
-	protected void insertOrReplaceImpl(final List<B> bos) {
-		if (bos != null && bos.size() > 0) {
-			SQLiteDatabase db = this.openWrite();
-			db.beginTransaction();
-			for (B bo : bos) {
-				if (bo != null) {
-					long id = replaceOrThrow(db, bo);
-					if (id == -1) {
-						throw new SQLiteException(
-								"Error inserting following object : " + bo);
-					}
-				}
-			}
-			db.setTransactionSuccessful();
-			db.endTransaction();
-
-		}
-	}
-
-	protected long replaceOrThrow(SQLiteDatabase db, B bo){
-		long id = db.replaceOrThrow(getNomTable(), null,
-				getContentValues(bo));
-		return id;
 	}
 
 	/**
@@ -128,13 +141,21 @@ public abstract class TableDAO<B extends IObjetBdd> {
 	protected abstract ContentValues getKeyValues(B bo);
 
 	protected String getWhereClause(B bo) {
-		List<String> lstStr = new ArrayList<>();
 		ContentValues cv = getKeyValues(bo);
-		for (String k : cv.keySet()) {
-			String v = cv.getAsString(k);
-			lstStr.add(k + "=" + v);
-		}
-		return String.join(" AND ", lstStr);
+		return buildPartReqArgs(cv, e -> e.getKey() +"="+e.getValue(), " AND ");
+	}
+
+	protected String getWhereClauseWithArgs(B bo){
+		ContentValues cv = getKeyValues(bo);
+		return cv.valueSet().stream()
+				.map(Map.Entry::getKey)
+				.map(k -> k +"=?")
+				.collect(Collectors.joining(" AND "));
+	}
+
+	protected String[] getWhereArgs(B bo){
+		ContentValues cv = getKeyValues(bo);
+		return toArgs(cv);
 	}
 
 	@NonNull
@@ -199,26 +220,12 @@ public abstract class TableDAO<B extends IObjetBdd> {
 
 	public String buildReqInsert(B bo){
 		ContentValues cv = getContentValues(bo);
-		return buildReqInsert(cv);
-	}
-
-	public String buildReqInsert(ContentValues cv){
-		Map<String, String> map =new HashMap<>();
-		cv.keySet().forEach(k -> {
-			String nomCol = k;
-			String valCol = cv.getAsString(k);
-			map.put(nomCol, valCol);
-		});
-		return buildReqInsert(map);
-	}
-
-
-	public String buildReqInsert(Map<String, String> map){
+		String values = buildPartReqArgs(cv, Map.Entry::getValue,",");
 		var sb = new StringBuilder();
 		sb.append("INSERT INTO ").append(getNomTable()).append(" (");
-		sb.append(String.join(",",map.keySet()));
+		sb.append(String.join(",",cv.keySet()));
 		sb.append(") VALUES (");
-		sb.append(String.join(",",map.values()));
+		sb.append(values);
 		sb.append(");");
 		return sb.toString();
 	}
@@ -230,6 +237,11 @@ public abstract class TableDAO<B extends IObjetBdd> {
 		sb.append(";");
 		return sb.toString();
 	}
+
+	public boolean isNeedUpdate(B oldBo, B newBo){
+		return getContentValuesToUpdate(oldBo, newBo).size() > 0;
+	}
+
 	public String buildReqUpdate(B newBo){
 		ContentValues cvNew = getContentValues(newBo);
 		// on supprime les clés des valeurs à update
@@ -238,7 +250,8 @@ public abstract class TableDAO<B extends IObjetBdd> {
 		return buildReqUpdate(newBo, cvNew);
 	}
 
-	public String buildReqUpdate(B oldBo, B newBo){
+	private ContentValues getContentValuesToUpdate(B oldBo, B newBo){
+
 		ContentValues cvOld = getContentValues(oldBo);
 		ContentValues cvNew = getContentValues(newBo);
 
@@ -255,17 +268,51 @@ public abstract class TableDAO<B extends IObjetBdd> {
 		lstColToNotUpdate.forEach(cvNew::remove);
 		// On supprime les clés des valeurs à update, elles devraient de toute façon être identiques et donc dans la liste précédente
 		getKeyValues(newBo).keySet().forEach(cvNew::remove);
+		return cvNew;
+	}
 
-		return cvNew.size() > 0 ? buildReqUpdate(newBo, cvNew) : "";
+	public String buildReqUpdate(B oldBo, B newBo) {
+		return buildReqUpdate(newBo, getContentValuesToUpdate(oldBo, newBo));
 	}
 
 	public String buildReqUpdate(B newBo, ContentValues cvNew){
+		if(cvNew.size() <= 0){
+			return "";
+		}
 		var sb = new StringBuilder();
 		sb.append("UPDATE ").append(getNomTable()).append(" SET ");
-		sb.append(cvNew.keySet().stream().map(k -> k + " = "+cvNew.getAsString(k)).collect(Collectors.joining(",")));
+		String values = buildPartReqArgs(cvNew, e -> e.getKey() + "="+ e.getValue(),",");
+		sb.append(values);
 		sb.append(" WHERE ");
 		sb.append(getWhereClause(newBo));
 		sb.append(";");
 		return sb.toString();
 	}
+
+	public static String[] toArgs(ContentValues cv){
+		List<String> lstVals = new ArrayList<>();
+		for (String k : cv.keySet()) {
+			lstVals.add(cv.getAsString(k));
+		}
+		return lstVals.toArray(new String[0]);
+	}
+
+	public static String buildPartReqArg(ContentValues cv, String k){
+		Object vObj = cv.get(k);
+		String v = cv.getAsString(k);
+		if (vObj instanceof String) {
+			v = DatabaseUtils.toStringWithQuotes(v);
+		} else if (vObj instanceof Enum<?> en){
+			v = DatabaseUtils.toStringWithQuotes(en.name());
+		}
+		return v;
+	}
+
+	public static String buildPartReqArgs(ContentValues cv, Function<Map.Entry<String, String>, String> valToArg, String strJoin){
+		return cv.valueSet().stream()
+				.map(e -> Map.entry(e.getKey(), buildPartReqArg(cv, e.getKey())))
+				.map(valToArg)
+				.collect(Collectors.joining(strJoin));
+	}
+
 }
